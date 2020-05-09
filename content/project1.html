@@ -1,0 +1,438 @@
+---
+title: "Project 1"
+author: "Rachel David"
+date: "3/13/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+
+<pre class="r"><code>#Data Sets:
+library(tidyr)
+head(population)</code></pre>
+<pre><code>## # A tibble: 6 x 3
+##   country      year population
+##   &lt;chr&gt;       &lt;int&gt;      &lt;int&gt;
+## 1 Afghanistan  1995   17586073
+## 2 Afghanistan  1996   18415307
+## 3 Afghanistan  1997   19021226
+## 4 Afghanistan  1998   19496836
+## 5 Afghanistan  1999   19987071
+## 6 Afghanistan  2000   20595360</code></pre>
+<pre class="r"><code>pop &lt;-as.data.frame(population)
+
+library(VGAM)
+head(olym12)</code></pre>
+<pre><code>##   ranking      country gold silver bronze totalmedal
+## 1       1 UnitedStates   46     29     29        104
+## 2       2        China   38     27     23         88
+## 3       3 GreatBritain   29     17     19         65
+## 4       4       Russia   24     26     32         82
+## 5       5   SouthKorea   13      8      7         28
+## 6       6      Germany   11     19     14         44</code></pre>
+<pre class="r"><code>olympics &lt;- as.data.frame(olym12)</code></pre>
+<p>The two datasets I have chosen are ‘population’, which contains the variables: country, year, and population, and ‘olym12’, which contains the variables: ranking, country, gold, silver, bronze, and totalmedal. The population dataset was within the tidyr package and the olym12 dataset was in the VGAM package so I obtained this data through calling these libraries in R. I chose to look at these datasets as the Olympics has always been something I have loved watching, and I am interested to determine any associations between these datasets. I hypothesize that countries with larger populations will have a larger total medal count and that countries with larger overall total medal count will have more gold medals.</p>
+<pre class="r"><code>#Tidying: 
+pop &lt;- pop %&gt;% pivot_wider(names_from =&quot;year&quot;, values_from=&quot;population&quot;)
+
+pop1 &lt;- pop[-c(2:18, 20)]</code></pre>
+<p>To tidy my pop data, I used pivot_wider so each country had one row and the years were moved to columns. I did this as the other data set has only one row per country, and this will allow for an easier join and so that each observation could have its own row and each variable had its own column. I then edited the data further so that all year columns (18 in total) were dropped in the population dataset except for the year 2012, as this is the one year that the olympic data was collected from.</p>
+<pre class="r"><code>#Joining
+library(dplyr)
+as.data.frame(apply(olympics,2,function(x)gsub(&#39;\\s+&#39;, &#39;&#39;,x)))</code></pre>
+<pre><code>##    ranking      country gold silver bronze totalmedal
+## 1        1 UnitedStates   46     29     29        104
+## 2        2        China   38     27     23         88
+## 3        3 GreatBritain   29     17     19         65
+## 4        4       Russia   24     26     32         82
+## 5        5   SouthKorea   13      8      7         28
+## 6        6      Germany   11     19     14         44
+## 7        7       France   11     11     12         34
+## 8        8        Italy    8      9     11         28
+## 9        9      Hungary    8      4      5         17
+## 10      10    Australia    7     16     12         35
+## 11      11        Japan    7     14     17         38
+## 12      12   Kazakhstan    7      1      5         13
+## 13      13  Netherlands    6      6      8         20
+## 14      14      Ukraine    6      5      9         20
+## 15      15   NewZealand    6      2      5         13
+## 16      16         Cuba    5      3      6         14
+##  [ reached &#39;max&#39; / getOption(&quot;max.print&quot;) -- omitted 69 rows ]</code></pre>
+<pre class="r"><code>pop1 &lt;- as.data.frame(apply(pop1,2,function(x)gsub(&#39;\\s+&#39;, &#39;&#39;,x)))
+names(pop1)[names(pop1) == &quot;2012&quot;] &lt;- &quot;popul&quot;
+pop1$popul &lt;- as.numeric(as.character(pop1$popul))
+pop1 %&gt;% mutate_if(is.factor, as.character) -&gt; pop1
+
+test &lt;- pop1
+pop1$country &lt;- gsub(&quot;China,HongKongSAR&quot;, &quot;HongKong&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;UnitedStatesofAmerica&quot;, &quot;UnitedStates&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;UnitedKingdomofGreatBritainandNorthernIreland&quot;, &quot;GreatBritain&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;RussianFederation&quot;, &quot;Russia&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;RepublicofKorea&quot;, &quot;SouthKorea&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;DemocraticPeople&#39;sSouthKorea&quot;, &quot;NorthKorea&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;Iran\\(IslamicRepublicof\\)&quot;, &quot;Iran&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;Venezuela\\(BolivarianRepublicof\\)&quot;, &quot;Venezuela&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;VietNam&quot;, &quot;Vietnam&quot;, pop1$country)
+outlier &lt;- olympics %&gt;% anti_join(pop1,by=c(&quot;country&quot;=&quot;country&quot;))%&gt;% distinct(country)
+outlier</code></pre>
+<pre><code>##   country
+## 1  Taiwan
+## 2 Moldova</code></pre>
+<pre class="r"><code>outlier2 &lt;- pop1 %&gt;% anti_join(olympics,by=c(&quot;country&quot;=&quot;country&quot;))%&gt;% distinct(country)
+glimpse(outlier2)</code></pre>
+<pre><code>## Observations: 136
+## Variables: 1
+## $ country &lt;chr&gt; &quot;Albania&quot;, &quot;AmericanSamoa&quot;, &quot;Andorra&quot;, &quot;Angola&quot;, &quot;Anguilla&quot;...</code></pre>
+<pre class="r"><code>pop1$country &lt;- gsub(&quot;RepublicofMoldova&quot;, &quot;Moldova&quot;, pop1$country)
+
+total &lt;- inner_join(pop1, olympics, by=c(&quot;country&quot;=&quot;country&quot;))
+head(total)</code></pre>
+<pre><code>##       country    popul ranking gold silver bronze totalmedal
+## 1 Afghanistan 29824536      79    0      0      1          1
+## 2     Algeria 38481705      50    1      0      0          1
+## 3   Argentina 41086927      42    1      1      2          4
+## 4     Armenia  2969081      60    0      1      2          3
+## 5   Australia 23050471      10    7     16     12         35
+## 6  Azerbaijan  9308959      30    2      2      6         10</code></pre>
+<p>I did an inner join to join my two datasets, as the olympics dataset had much fewer countries than the
+populations dataset as many countries did not participate in the 2012 Olympics. This introduced many NAs,
+which would result in issues when doing data wrangling, so I did an inner join so only the countries present
+in both datasets would be included. This resulted in 1 row being dropped from the olympics dataset and 135
+rows being dropped from the populations dataset. This was a large number of cases dropped from the populations
+dataset as many countries did not participate in the Olympics, and this should be noted as much data was lost.
+I also had to do some manipulation to the names as the countries were not named exactly the same (one
+dataset had spaces while others didn’t and some used abbreviations that the other did not), so I used gsub()
+to adjust these names so these elements could be included.</p>
+<pre class="r"><code>##Wrangling
+library(dplyr)
+library(ggplot2)
+
+total %&gt;% select(country, popul, totalmedal)  %&gt;% filter(totalmedal&gt;10 &amp; popul&gt;10000000)</code></pre>
+<pre><code>##         country      popul totalmedal
+## 1     Australia   23050471         35
+## 2        Brazil  198656019         17
+## 3        Canada   34837978         18
+## 4         China 1377064907         88
+## 5          Cuba   11270957         14
+## 6        France   63936575         34
+## 7       Germany   82800121         44
+## 8          Iran   76424443         12
+## 9         Italy   60884593         28
+## 10        Japan  127249704         38
+## 11   Kazakhstan   16271201         13
+## 12        Kenya   43178141         11
+## 13  Netherlands   16714018         20
+## 14   SouthKorea   49002683         28
+## 15       Russia  143169653         82
+## 16        Spain   46754541         17
+## 17      Ukraine   45529944         20
+## 18 GreatBritain   62783115         65
+## 19 UnitedStates  317505266        104</code></pre>
+<pre class="r"><code>total %&gt;% select(country,gold) %&gt;% arrange(desc(gold))</code></pre>
+<pre><code>##              country gold
+## 1       UnitedStates   46
+## 2              China   38
+## 3       GreatBritain   29
+## 4             Russia   24
+## 5         SouthKorea   13
+## 6             France   11
+## 7            Germany   11
+## 8            Hungary    8
+## 9              Italy    8
+## 10         Australia    7
+## 11             Japan    7
+## 12        Kazakhstan    7
+## 13       Netherlands    6
+## 14        NewZealand    6
+## 15           Ukraine    6
+## 16              Cuba    5
+## 17     CzechRepublic    4
+## 18        NorthKorea    4
+## 19              Iran    4
+## 20           Jamaica    4
+## 21            Brazil    3
+## 22           Croatia    3
+## 23          Ethiopia    3
+## 24       SouthAfrica    3
+## 25             Spain    3
+## 26        Azerbaijan    2
+## 27           Belarus    2
+## 28           Denmark    2
+## 29             Kenya    2
+## 30         Lithuania    2
+## 31            Norway    2
+## 32            Poland    2
+## 33           Romania    2
+## 34       Switzerland    2
+## 35            Turkey    2
+## 36           Algeria    1
+## 37         Argentina    1
+## 38           Bahamas    1
+## 39            Canada    1
+## 40          Colombia    1
+## 41 DominicanRepublic    1
+## 42           Georgia    1
+## 43           Grenada    1
+## 44           Ireland    1
+## 45            Latvia    1
+## 46            Mexico    1
+## 47            Serbia    1
+## 48          Slovenia    1
+## 49            Sweden    1
+## 50 TrinidadandTobago    1
+##  [ reached &#39;max&#39; / getOption(&quot;max.print&quot;) -- omitted 34 rows ]</code></pre>
+<pre class="r"><code>total &lt;- total %&gt;% mutate(poppctile=ntile(popul,100))
+glimpse(total)</code></pre>
+<pre><code>## Observations: 84
+## Variables: 8
+## $ country    &lt;chr&gt; &quot;Afghanistan&quot;, &quot;Algeria&quot;, &quot;Argentina&quot;, &quot;Armenia&quot;, &quot;Austr...
+## $ popul      &lt;dbl&gt; 29824536, 38481705, 41086927, 2969081, 23050471, 9308959...
+## $ ranking    &lt;int&gt; 79, 50, 42, 60, 10, 30, 50, 79, 26, 60, 69, 22, 63, 36, ...
+## $ gold       &lt;int&gt; 0, 1, 1, 0, 7, 2, 1, 0, 2, 0, 0, 3, 0, 1, 38, 0, 1, 3, 5...
+## $ silver     &lt;int&gt; 0, 0, 1, 1, 16, 2, 0, 0, 5, 1, 1, 5, 1, 5, 27, 0, 3, 1, ...
+## $ bronze     &lt;int&gt; 1, 0, 2, 2, 12, 6, 0, 1, 5, 2, 0, 9, 1, 12, 23, 1, 4, 2,...
+## $ totalmedal &lt;int&gt; 1, 1, 4, 3, 35, 10, 1, 1, 12, 3, 1, 17, 2, 18, 88, 1, 8,...
+## $ poppctile  &lt;int&gt; 64, 71, 72, 17, 58, 39, 2, 6, 40, 49, 10, 95, 35, 67, 99...</code></pre>
+<pre class="r"><code>total &lt;-total %&gt;% mutate (size = case_when(popul&lt;10000000 ~ &quot;small&quot;, 
+popul&lt;=50000000 &amp; popul&gt;=10000000 ~ &quot;medium&quot;, popul&gt;50000000 ~ &quot;big&quot;))
+
+total %&gt;% group_by(size) %&gt;% summarize(mean_medal=mean(totalmedal))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   mean_medal
+##   &lt;chr&gt;       &lt;dbl&gt;
+## 1 big         30.6 
+## 2 medium       8.52
+## 3 small        4.41</code></pre>
+<pre class="r"><code>##Summary Statistics 
+total %&gt;% group_by(size) %&gt;%summarize(max(totalmedal))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `max(totalmedal)`
+##   &lt;chr&gt;              &lt;int&gt;
+## 1 big                  104
+## 2 medium                35
+## 3 small                 17</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(max(gold))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `max(gold)`
+##   &lt;chr&gt;        &lt;int&gt;
+## 1 big             46
+## 2 medium          13
+## 3 small            8</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(mean(ranking))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `mean(ranking)`
+##   &lt;chr&gt;            &lt;dbl&gt;
+## 1 big               24  
+## 2 medium            41.1
+## 3 small             51.1</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(mean(popul))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `mean(popul)`
+##   &lt;chr&gt;          &lt;dbl&gt;
+## 1 big       248916198.
+## 2 medium     27345184.
+## 3 small       4341819.</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(mean(gold))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `mean(gold)`
+##   &lt;chr&gt;         &lt;dbl&gt;
+## 1 big           10.6 
+## 2 medium         2.41
+## 3 small          1.14</code></pre>
+<pre class="r"><code>total %&gt;% summarize(sd(popul))</code></pre>
+<pre><code>##   sd(popul)
+## 1 202579901</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(median(popul))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `median(popul)`
+##   &lt;chr&gt;            &lt;dbl&gt;
+## 1 big           87264485
+## 2 medium        28541423
+## 3 small          3694237</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(max(popul))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `max(popul)`
+##   &lt;chr&gt;         &lt;dbl&gt;
+## 1 big      1377064907
+## 2 medium     49002683
+## 3 small       9976195</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(min(totalmedal))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `min(totalmedal)`
+##   &lt;chr&gt;              &lt;int&gt;
+## 1 big                    2
+## 2 medium                 1
+## 3 small                  1</code></pre>
+<pre class="r"><code>total %&gt;% group_by(size) %&gt;%summarize(sd(totalmedal))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   size   `sd(totalmedal)`
+##   &lt;chr&gt;             &lt;dbl&gt;
+## 1 big               33.1 
+## 2 medium             8.97
+## 3 small              4.03</code></pre>
+<pre class="r"><code>total %&gt;% summarize_all(n_distinct)</code></pre>
+<pre><code>##   country popul ranking gold silver bronze totalmedal poppctile size
+## 1      84    84      55   15     18     18         26        84    3</code></pre>
+<pre class="r"><code>#
+
+stats &lt;- total %&gt;% summarize_if(is.numeric, list(min=min,max=max, mean=mean, 
+sd=sd,var=var, median=median))
+
+stats%&gt;%pivot_longer(contains(&quot;_&quot;))%&gt;%separate(name,into=c(&quot;variable&quot;,&quot;stat&quot;)) %&gt;%
+  pivot_wider(names_from = &quot;variable&quot;, values_from = &quot;value&quot;) %&gt;% 
+  arrange(stat) %&gt;% tidyr::unnest()</code></pre>
+<pre><code>## # A tibble: 6 x 8
+##   stat     popul ranking  gold silver bronze totalmedal poppctile
+##   &lt;chr&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+## 1 max    1.38e 9    79   46     29     32         104        99  
+## 2 mean   6.47e 7    41.9  3.60   3.61   4.23       11.4      49.9
+## 3 median 1.11e 7    42    1      1      2           4        50  
+## 4 min    1.05e 5     1    0      0      0           1         1  
+## 5 sd     2.03e 8    23.8  7.67   6.01   6.06       19.1      29.0
+## 6 var    4.10e16   565.  58.8   36.1   36.7       363.      843.</code></pre>
+<pre class="r"><code>groupstats &lt;- total %&gt;% group_by(size) %&gt;% summarize_if(is.numeric, list(min=min,max=max, 
+mean=mean, sd=sd,var=var, median=median))
+groupstats%&gt;%pivot_longer(contains(&quot;_&quot;))%&gt;%
+  separate(name,into=c(&quot;variable&quot;,&quot;stat&quot;)) %&gt;% 
+  pivot_wider(names_from = &quot;stat&quot;, values_from = &quot;value&quot;) %&gt;% 
+  arrange(variable) %&gt;% tidyr::unnest()</code></pre>
+<pre><code>## # A tibble: 21 x 8
+##    size   variable       min       max        mean          sd     var    median
+##    &lt;chr&gt;  &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;
+##  1 big    bronze           0    3.20e1      1.02e1      1.02e1 1.04e 2    6.50e0
+##  2 medium bronze           0    1.20e1      3.41e0      3.49e0 1.22e 1    2.00e0
+##  3 small  bronze           0    6.00e0      1.97e0      1.59e0 2.53e 0    2.00e0
+##  4 big    gold             0    4.60e1      1.06e1      1.41e1 1.98e 2    3.50e0
+##  5 medium gold             0    1.30e1      2.41e0      3.03e0 9.18e 0    1.00e0
+##  6 small  gold             0    8.00e0      1.14e0      1.75e0 3.06e 0    1.00e0
+##  7 big    poppctile       79    9.90e1      8.92e1      6.39e0 4.09e 1    8.95e1
+##  8 medium poppctile       45    7.80e1      6.13e1      1.01e1 1.03e 2    6.10e1
+##  9 small  poppctile        1    4.30e1      2.19e1      1.28e1 1.65e 2    2.20e1
+## 10 big    popul     52385920    1.38e9      2.49e8      3.92e8 1.54e17    8.73e7
+## # ... with 11 more rows</code></pre>
+<pre class="r"><code>#corelation matrix 
+corr &lt;- total %&gt;% select_if(is.numeric)
+cor(corr)</code></pre>
+<pre><code>##                 popul    ranking       gold     silver     bronze totalmedal
+## popul       1.0000000 -0.1856547  0.4623733  0.4354350  0.3918027  0.4477353
+## ranking    -0.1856547  1.0000000 -0.6173720 -0.6541985 -0.6534333 -0.6621834
+## gold        0.4623733 -0.6173720  1.0000000  0.8944536  0.8727676  0.9615048
+## silver      0.4354350 -0.6541985  0.8944536  1.0000000  0.9381899  0.9731263
+## bronze      0.3918027 -0.6534333  0.8727676  0.9381899  1.0000000  0.9645629
+## totalmedal  0.4477353 -0.6621834  0.9615048  0.9731263  0.9645629  1.0000000
+## poppctile   0.4369082 -0.4718358  0.4300723  0.5084784  0.4984211  0.4916576
+##             poppctile
+## popul       0.4369082
+## ranking    -0.4718358
+## gold        0.4300723
+## silver      0.5084784
+## bronze      0.4984211
+## totalmedal  0.4916576
+## poppctile   1.0000000</code></pre>
+<p>With the filter() function, I filtered the data to create a list of countries that received more than 10 medals total at the Olympics and had a “big” population; using the select() function, I was able to display only the country, totalmedal, and popul columns to make the results more clear. Using the arrange() function, we see that the US was the country with the most number of gold medals. Using a dplyr vector function of ntile() with mutate(), we were able to create a new variable that showed what percentile (out of 100) that the country was in terms of its population. I then used mutate() to create a new categorical variable “size” to distinguish if the country was big, medium, or small in terms of its population size. I then did group_by() on this size and summarize() to determine the mean number of total medals received by each grouping of country size. We saw that big countries had the most medals followed by medium and finally small countries. Using n_distinct(), we can see the total number of distint elements in each variable - the most notable observation is that multiple countries have the same ranking as they received the same number of total medals.</p>
+<p>Using summary statistics, we see that after grouping by size, big countries have the most total medals followed by medium and then small; we see this same trend when grouping by size and looking at number of gold medals, overall ranking, and overall population size (descending from big to small). We then determined the standard deviation of the population of the countries; we grouped by size of country and found the median population value; we determined the largest population size in each size grouping of country; using summarize() and min(), we found the smallest number of total medals in each size grouping; we used summarize() and sd() to find the standard deviation in total medals when grouping by size. I created tables of both each numeric variable and each numeric variable grouped by country size that showed the min, max, median, mean, sd, and var. From these tables we see that in general, the number of medals increased as country size increased, but the minimum for all sizes was very comparable. I then created a correlation matrix of the numeric variables, and we can see stronger correlations between each type of medal and some correlation between overall population and medals received.</p>
+<pre class="r"><code>#Visualizing
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+cleancorr&lt;-cor(corr)%&gt;%as.data.frame%&gt;%
+  rownames_to_column%&gt;%
+  pivot_longer(-1,names_to=&quot;name&quot;,values_to=&quot;correlation&quot;)
+head(cleancorr)</code></pre>
+<pre><code>## # A tibble: 6 x 3
+##   rowname name       correlation
+##   &lt;chr&gt;   &lt;chr&gt;            &lt;dbl&gt;
+## 1 popul   popul            1    
+## 2 popul   ranking         -0.186
+## 3 popul   gold             0.462
+## 4 popul   silver           0.435
+## 5 popul   bronze           0.392
+## 6 popul   totalmedal       0.448</code></pre>
+<pre class="r"><code>cleancorr %&gt;% ggplot(aes(rowname,name,fill=correlation))+
+  geom_tile()+
+  scale_fill_gradient2(low=&quot;red&quot;,mid=&quot;white&quot;,high=&quot;blue&quot;)+ 
+  geom_text(aes(label=round(correlation,2)),color = &quot;black&quot;, size = 4)+ 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+ 
+  coord_fixed()</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#scatterplot 
+ggplot(total, aes(x=popul, y=totalmedal, color=size))+
+  geom_point() + 
+  scale_y_continuous(name=&quot;Total Medals&quot;, breaks = seq(from = 0, to = 100, by = 20))+
+  scale_color_brewer(palette=&quot;Set1&quot;)+
+  labs( title=&quot;Total Medals per Country Size&quot;, x=&quot;Country Population&quot;)+ 
+  theme(axis.text.x = element_text(angle=45, hjust=1), 
+        legend.position=&quot;bottom&quot;)+scale_x_log10()</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>##bar graph 
+total %&gt;% group_by(size) %&gt;% ggplot(aes(x=size,y=gold, fill=size)) +
+  geom_bar(aes(x=size, y=gold,fill=size), stat=&quot;summary&quot;, fun.y=&quot;mean&quot;) + 
+scale_fill_manual(&quot;legend&quot;, values = c(&quot;big&quot; = &quot;lightblue1&quot;, &quot;medium&quot; = &quot;plum&quot;, &quot;small&quot; = &quot;lightpink1&quot;))+
+  labs( title=&quot;Average Gold Medals per Country Size&quot;)+scale_y_continuous(name=&quot;Gold Medals&quot;)+
+  scale_x_discrete(name =&quot;Country Population Size&quot;)+ 
+  theme( legend.position = c(.95, .95),legend.justification = c(&quot;right&quot;, &quot;top&quot;), 
+         legend.box.just = &quot;right&quot;,legend.margin = margin(6, 6, 6, 6)) +
+  geom_errorbar(stat=&quot;summary&quot;,fun.data=&quot;mean_se&quot;, width=0.2)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-3.png" width="672" style="display: block; margin: auto;" />
+From the correlation heatmap, we see a strong correlation between totalmedal and bronze, silver,
+and gold. We also see an increasing correlation in population and medals as you increase from bronze to silver to gold. It was interesting to observe that there was not a very high correlation between population and medals in general as compared with correlation between total medals and each individual medal. We can see negative correlations between ranking and gold, silver, bronze, and totalmedals as the better a country is and more medals they receive, the higher (or smaller number) their rank becomes.</p>
+<p>From the scatterplot, we see a general positive correlation that as population increases, the number of total medals also increases. However, there are countries of all groupings (big, medium, and small) that had very low total medals, so this is not a direct correlation. We see within each size grouping, there is also a general correlation bewtween an increase in population and an increase in total medals. After 40 medals total, we see exclusively big countries while, no small country has above 20 medals, and medium countries has a range of medals from 0-around 40.</p>
+<p>From the bar plot, we can clearly see that as the size grouping of the country increases, the average number of gold medals received also increases. This shows a direct positive correlation between country population size and the average number of gold medals received. We see a notable increase in gold meadls from small to medium and a much more drastic jump in gold meadls when moving from medium to big countries. We also can see much larger standard error for the big countries when compared to medium and small size countries.</p>
+<pre class="r"><code>#Dimentionality Reduction
+
+
+library(cluster)
+pam2p &lt;- total %&gt;% select(-country, -size) %&gt;% scale %&gt;% pam(2) ##scale then pam with 2 clusters  
+pam2p</code></pre>
+<pre><code>## Medoids:
+##      ID        popul      ranking       gold     silver     bronze totalmedal
+## [1,] 66 -0.272187414  0.006008682 -0.3385203 -0.4337959 -0.3674399 -0.3896689
+## [2,] 29 -0.003730268 -1.466118323  0.9658699  1.2300789  1.2830924  1.1839940
+##       poppctile
+## [1,] -0.2731437
+## [2,]  1.1393290
+## Clustering vector:
+##  [1] 1 1 1 1 2 1 1 1 1 1 1 2 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1 2 1 1 1 1 1 1
+## [39] 1 1 2 1 2 1 1 1 1 1 1 1 1 1 1 2 1 1 1 1 1 1 2 1 1 2 1 1 1 1 1 1 2 1 1 1 1 1
+## [77] 1 1 1 2 2 2 1 1
+## Objective function:
+##    build     swap 
+## 1.592622 1.592622 
+## 
+## Available components:
+##  [1] &quot;medoids&quot;    &quot;id.med&quot;     &quot;clustering&quot; &quot;objective&quot;  &quot;isolation&quot; 
+##  [6] &quot;clusinfo&quot;   &quot;silinfo&quot;    &quot;diss&quot;       &quot;call&quot;       &quot;data&quot;</code></pre>
+<pre class="r"><code>sil_width&lt;-vector() ##check clusters with sil_width and graph 
+for(i in 2:10){   
+  pamp_fit &lt;- total%&gt;%select(-country, -size)%&gt;%pam(i)  
+  sil_width[i] &lt;- pamp_fit$silinfo$avg.width  
+} 
+
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name=&quot;k&quot;,breaks=1:10)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>finalp&lt;-total%&gt;%mutate(cluster=as.factor(pam2p$clustering)) ##add cluster data 
+
+confmatp &lt;- finalp%&gt;%group_by(size)%&gt;%count(cluster)%&gt;%
+arrange(desc(n))%&gt;% 
+  pivot_wider(names_from=&quot;cluster&quot;,values_from=&quot;n&quot;,values_fill = list(&#39;n&#39;=0)) 
+##group to check
+confmatp</code></pre>
+<pre><code>## # A tibble: 3 x 3
+## # Groups:   size [3]
+##   size     `1`   `2`
+##   &lt;chr&gt;  &lt;int&gt; &lt;int&gt;
+## 1 small     37     0
+## 2 medium    24     5
+## 3 big        9     9</code></pre>
+<pre class="r"><code>ggplot(finalp, aes(x=popul,y=totalmedal, color=cluster))+geom_point() ##plot on 2 </code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-6-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>library(GGally) 
+ggpairs(finalp, columns=2:8, aes(color=cluster)) ##plot all pairs </code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-6-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>plot(pam2p,which=2) ##plot avg. sil width </code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-6-4.png" width="672" style="display: block; margin: auto;" />
+I first scaled my numeric variables in the dataset. I then graphed the sil_width of all numeric variables and the graph suggested a total of 2 clusters. I then ran the cluster analysis with pam() using two clusters as determined on all numeric variables of my dataset. I then tested how accurate the groupings were by grouping by cluser and comparing it to the three size groupings, the clusters were exactly right for small size, not as accurate for medium and big size. The second cluster had much fewer in the cluster than the first. I then graphed on two variables (popul and totalmedal) in clusters based on all 7 numeric variables.
+I then visualized all pairwise combinations of all the variables and found strong correlations that as ranking decreased (which means the country was doing better), the number of total medals was increasing. The clusters mapped well and I saw strong correlations between the number of gold and silver medals as well as gold, silver, and bronze and total medals. The plots that showed the clusters most distinctly included the plots with ranking and gold, silver, bronze, and total medals. This makes sense as these variables would be correlated. I then interpreted the average silhouette width and it was 0.54, which shows that a reasonable structure has been found.</p>

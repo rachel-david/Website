@@ -1,0 +1,583 @@
+---
+title: 'Project 2: Modeling, Testing, and Predicting'
+author: "Rachel David; rpd554; SDS348"
+date: '5/1/2020'
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+---
+
+
+
+<div id="modeling" class="section level1">
+<h1>Modeling</h1>
+<ul>
+<li><strong>0.</strong></li>
+</ul>
+<pre class="r"><code>#INTRODUCING DATA 
+library(tidyr)
+pop &lt;-as.data.frame(population)
+
+library(VGAM)
+olympics &lt;- as.data.frame(olym12)
+pop &lt;- pop %&gt;% pivot_wider(names_from =&quot;year&quot;, values_from=&quot;population&quot;)
+
+pop1 &lt;- pop[-c(2:18, 20)]
+library(dplyr)
+as.data.frame(apply(olympics,2,function(x)gsub(&#39;\\s+&#39;, &#39;&#39;,x)))</code></pre>
+<pre><code>## ranking country gold silver bronze totalmedal
+## 1 1 UnitedStates 46 29 29 104
+## 2 2 China 38 27 23 88
+## 3 3 GreatBritain 29 17 19 65
+## 4 4 Russia 24 26 32 82
+## 5 5 SouthKorea 13 8 7 28
+## 6 6 Germany 11 19 14 44
+## 7 7 France 11 11 12 34
+## 8 8 Italy 8 9 11 28
+## 9 9 Hungary 8 4 5 17
+## 10 10 Australia 7 16 12 35
+## 11 11 Japan 7 14 17 38
+## 12 12 Kazakhstan 7 1 5 13
+## 13 13 Netherlands 6 6 8 20
+## 14 14 Ukraine 6 5 9 20
+## 15 15 NewZealand 6 2 5 13
+## 16 16 Cuba 5 3 6 14
+## 17 17 Iran 4 5 3 12
+## 18 18 Jamaica 4 4 4 12
+## 19 19 CzechRepublic 4 3 3 10
+## 20 20 NorthKorea 4 0 2 6
+## 21 21 Spain 3 10 4 17
+## 22 22 Brazil 3 5 9 17
+## 23 23 SouthAfrica 3 2 1 6
+## 24 24 Ethiopia 3 1 3 7
+## 25 25 Croatia 3 1 2 6
+## 26 26 Belarus 2 5 5 12
+## 27 27 Romania 2 5 2 9
+## 28 28 Kenya 2 4 5 11
+## 29 29 Denmark 2 4 3 9
+## 30 30 Poland 2 2 6 10
+## 31 30 Azerbaijan 2 2 6 10
+## 32 32 Turkey 2 2 1 5
+## 33 33 Switzerland 2 2 0 4
+## 34 34 Lithuania 2 1 2 5
+## 35 35 Norway 2 1 1 4
+## 36 36 Canada 1 5 12 18
+## 37 37 Sweden 1 4 3 8
+## 38 38 Colombia 1 3 4 8
+## 39 39 Mexico 1 3 3 7
+## 40 39 Georgia 1 3 3 7
+## 41 41 Ireland 1 1 3 5
+## 42 42 Slovenia 1 1 2 4
+## 43 42 Serbia 1 1 2 4
+## 44 42 Argentina 1 1 2 4
+## 45 45 Tunisia 1 1 1 3
+## 46 46 DominicanRepublic 1 1 0 2
+## 47 47 Uzbekistan 1 0 3 4
+## 48 47 TrinidadandTobago 1 0 3 4
+## 49 49 Latvia 1 0 1 2
+## 50 50 Venezuela 1 0 0 1
+## 51 50 Uganda 1 0 0 1
+## 52 50 Grenada 1 0 0 1
+## 53 50 Bahamas 1 0 0 1
+## 54 50 Algeria 1 0 0 1
+## 55 55 India 0 2 4 6
+## 56 56 Mongolia 0 2 3 5
+## 57 57 Thailand 0 2 1 3
+## 58 58 Egypt 0 2 0 2
+## 59 59 Slovakia 0 1 3 4
+## 60 60 Finland 0 1 2 3
+## 61 60 Belgium 0 1 2 3
+## 62 60 Armenia 0 1 2 3
+## 63 63 PuertoRico 0 1 1 2
+## 64 63 Malaysia 0 1 1 2
+## 65 63 Indonesia 0 1 1 2
+## 66 63 Estonia 0 1 1 2
+## 67 63 Taiwan 0 1 1 2
+## 68 63 Bulgaria 0 1 1 2
+## 69 69 Portugal 0 1 0 1
+## 70 69 Montenegro 0 1 0 1
+## 71 69 Guatemala 0 1 0 1
+## 72 69 Gabon 0 1 0 1
+## 73 69 Cyprus 0 1 0 1
+## 74 69 Botswana 0 1 0 1
+## 75 75 Singapore 0 0 2 2
+## 76 75 Qatar 0 0 2 2
+## 77 75 Moldova 0 0 2 2
+## 78 75 Greece 0 0 2 2
+## 79 79 Tajikistan 0 0 1 1
+## 80 79 SaudiArabia 0 0 1 1
+## 81 79 Morocco 0 0 1 1
+## 82 79 Kuwait 0 0 1 1
+## 83 79 HongKong 0 0 1 1
+## 84 79 Bahrain 0 0 1 1
+## 85 79 Afghanistan 0 0 1 1</code></pre>
+<pre class="r"><code>pop1 &lt;- as.data.frame(apply(pop1,2,function(x)gsub(&#39;\\s+&#39;, &#39;&#39;,x)))
+names(pop1)[names(pop1) == &quot;2012&quot;] &lt;- &quot;popul&quot;
+pop1$popul &lt;- as.numeric(as.character(pop1$popul))
+pop1 %&gt;% mutate_if(is.factor, as.character) -&gt; pop1
+
+test &lt;- pop1
+pop1$country &lt;- gsub(&quot;China,HongKongSAR&quot;, &quot;HongKong&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;UnitedStatesofAmerica&quot;, &quot;UnitedStates&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;UnitedKingdomofGreatBritainandNorthernIreland&quot;, &quot;GreatBritain&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;RussianFederation&quot;, &quot;Russia&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;RepublicofKorea&quot;, &quot;SouthKorea&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;DemocraticPeople&#39;sSouthKorea&quot;, &quot;NorthKorea&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;Iran\\(IslamicRepublicof\\)&quot;, &quot;Iran&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;Venezuela\\(BolivarianRepublicof\\)&quot;, &quot;Venezuela&quot;, pop1$country)
+pop1$country &lt;- gsub(&quot;VietNam&quot;, &quot;Vietnam&quot;, pop1$country)
+outlier &lt;- olympics %&gt;% anti_join(pop1,by=c(&quot;country&quot;=&quot;country&quot;))%&gt;% distinct(country)
+outlier2 &lt;- pop1 %&gt;% anti_join(olympics,by=c(&quot;country&quot;=&quot;country&quot;))%&gt;% distinct(country)
+pop1$country &lt;- gsub(&quot;RepublicofMoldova&quot;, &quot;Moldova&quot;, pop1$country)
+
+proj2 &lt;- inner_join(pop1, olympics, by=c(&quot;country&quot;=&quot;country&quot;))
+proj2 &lt;-proj2 %&gt;% mutate (size = case_when(popul&lt;10000000 ~ &quot;small&quot;, 
+popul&lt;=50000000 &amp; popul&gt;=10000000 ~ &quot;medium&quot;, popul&gt;50000000 ~ &quot;big&quot;))
+proj2&lt;-proj2%&gt;%mutate(goldmedalwinner=ifelse(gold&gt;0,1,0))
+proj2&lt;-proj2%&gt;%mutate(top2=ifelse(gold&gt;0|silver&gt;0,1,0))
+
+proj2$top2 &lt;- as.factor(proj2$top2)
+proj2&lt;-proj2%&gt;%mutate(y=ifelse(top2==1,1,0))</code></pre>
+<p>The dataset I am using is a 2012 Olympics dataset, which contains the variables: country, population, overall ranking (in terms of total number of medals), # of gold, silver, and bronze medals, totalmedals (sum of all medals won by the country), size (which categorizes by big, medium, and small countries by population size), goldmedalwinner (which is a binary variable indicating whether the country did or did not win a gold medal), and top2 (which is a binary variable indicating if the country has won at least 1 gold or silver medal). Each variable has 84 observations.</p>
+<ul>
+<li><strong>1.</strong></li>
+</ul>
+<pre class="r"><code>#MANOVA testing 
+man1&lt;-manova(cbind(ranking,gold,silver,bronze)~size, data=proj2) 
+summary(man1)</code></pre>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## size 2 0.33847 4.0233 8 158 0.0002256 ***
+## Residuals 81
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#univariate anovas 
+summary.aov(man1) </code></pre>
+<pre><code>## Response ranking :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## size 2 8941 4470.6 9.5358 0.000191 ***
+## Residuals 81 37975 468.8
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response gold :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## size 2 1136.4 568.22 12.3 2.163e-05 ***
+## Residuals 81 3741.8 46.20
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response silver :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## size 2 919.6 459.80 17.919 3.601e-07 ***
+## Residuals 81 2078.4 25.66
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response bronze :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## size 2 842.19 421.10 15.472 2.037e-06 ***
+## Residuals 81 2204.51 27.22
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#post-hoc t tests 
+pairwise.t.test(proj2$ranking,proj2$size, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  proj2$ranking and proj2$size 
+## 
+##        big     medium
+## medium 0.010   -     
+## small  3.8e-05 0.065 
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(proj2$gold,proj2$size, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  proj2$gold and proj2$size 
+## 
+##        big     medium 
+## medium 0.00014 -      
+## small  6.5e-06 0.45032
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(proj2$silver,proj2$size, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  proj2$silver and proj2$size 
+## 
+##        big     medium
+## medium 1.1e-05 -     
+## small  9.4e-08 0.27  
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(proj2$bronze,proj2$size, p.adj=&quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  proj2$bronze and proj2$size 
+## 
+##        big     medium
+## medium 4.5e-05 -     
+## small  5.0e-07 0.27  
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>#adjusted bonferonni correction 
+0.05/17</code></pre>
+<pre><code>## [1] 0.002941176</code></pre>
+<pre class="r"><code>ggplot(proj2, aes(x = ranking, y = gold)) +  geom_point(alpha = .5) + 
+  geom_density_2d(h=2) + coord_fixed() + facet_wrap(~size)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-2-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(proj2, aes(x = gold, y = silver)) +  geom_point(alpha = .5) + 
+  geom_density_2d(h=2) + coord_fixed() + facet_wrap(~size)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-2-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(proj2, aes(x = silver, y = bronze)) +  geom_point(alpha = .5) + 
+  geom_density_2d(h=2) + coord_fixed() + facet_wrap(~size)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-2-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>covmats&lt;-proj2%&gt;%group_by(size)%&gt;%do(covs=cov(.[3:6])) 
+for(i in 1:3){print(as.character(covmats$size[i])); print(covmats$covs[i])}</code></pre>
+<pre><code>## [1] &quot;big&quot;
+## [[1]]
+##           ranking      gold     silver     bronze
+## ranking  468.3529 -211.3529 -161.41176 -168.00000
+## gold    -211.3529  198.4967  127.03922  126.13725
+## silver  -161.4118  127.0392   96.14706   96.44118
+## bronze  -168.0000  126.1373   96.44118  104.26471
+## 
+## [1] &quot;medium&quot;
+## [[1]]
+##           ranking       gold     silver     bronze
+## ranking 546.52463 -57.972906 -54.859606 -55.330049
+## gold    -57.97291   9.179803   6.811576   6.536946
+## silver  -54.85961   6.811576  13.435961   9.525862
+## bronze  -55.33005   6.536946   9.525862  12.179803
+## 
+## [1] &quot;small&quot;
+## [[1]]
+##           ranking       gold     silver     bronze
+## ranking 408.62012 -29.657658 -19.569069 -20.607357
+## gold    -29.65766   3.064565   1.347598   1.670420
+## silver  -19.56907   1.347598   1.881381   1.369369
+## bronze  -20.60736   1.670420   1.369369   2.527027</code></pre>
+<pre><code> After running the manova test, we had a significant p-value of less than 0.05, and so we can reject </code></pre>
+<p>the null hypothesis and conclude that there was a significant mean difference across levels of one my
+categorical variables (size).</p>
+<pre><code> We then performed follow-up one-way, univariate ANOVAs for each variable and found that for </code></pre>
+<p>all 4 of these numeric variables, they were significant, which means that for ranking, gold,
+silver, and bronze, at least one of the size classifications have mean differences that differs
+significantly.</p>
+<pre><code> We then performed individual post-hoc t-tests and found that the big and medium groups differ </code></pre>
+<p>and the big and small groups differ for ranking, gold, silver, and bronze, as these groups had
+p-values less than the alpha of 0.05, so we can reject the null hypothesis that there is no difference
+between these groups (when using the unadjusted probability of a type-1 error, which is 0.05).</p>
+<pre><code> We conducted a total of 1 MANOVA, 4 ANOVAs, and 12 t-tests for a total of 17 tests. With </code></pre>
+<p>the bonferroni correction, the alpha value we should be using is 0.00294. With this adjusted
+correction, there is no longer a significant difference between big and medium size for ranking,
+but all other big and medium and big and small differences are significant for gold, silver,
+and bronze as well as big and small for ranking.</p>
+<pre><code> When considering the assumptions for a MANOVA, we see that </code></pre>
+<p>we have independent observations, but these are not random samples as the data is from certain
+countries. When examining bivariate density plots for each group revealed stark deparures from
+multivariate normality, so this assumption is likely not met. Examination of covariance matrices
+with covmats for each group did not show relative homogeneity of within-group covariance matrices,
+so this assumption is likely not met. We do see linear relationships between our dependent variables,
+so this assumption is likely met. We do see a few extreme univariate or multivariate outliers,
+so this assumptions is likely not met. Finally, we see no multicolinearity, as the dependent
+variables are not too correlated, so this assumption is likely met.</p>
+<ul>
+<li><strong>2.</strong></li>
+</ul>
+<pre class="r"><code>#Randomization Test 
+rand &lt;- proj2%&gt;%dplyr::filter(!size==&quot;medium&quot;)
+  
+rand%&gt;%group_by(size)%&gt;%
+  summarize(means=mean(totalmedal))%&gt;%summarize(`mean_diff:`=diff(means))%&gt;% pull #26.150</code></pre>
+<pre><code>## [1] -26.15015</code></pre>
+<pre class="r"><code>#loop
+diffs&lt;-vector()
+
+for(i in 1:5000){
+  temp &lt;- rand %&gt;% mutate(totalmedal=sample(rand$totalmedal))
+  diffs[i] &lt;- temp %&gt;% summarize(mean(totalmedal[size==&quot;big&quot;])-mean(totalmedal[size==&quot;small&quot;])) %&gt;% pull
+}
+
+mean(diffs&gt;26.150 | diffs&lt; -26.150)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>#plot visualizing null distribution and test statistic 
+{hist(diffs,main=&quot;&quot;,ylab=&quot;&quot;); abline(v = -26.150,col=&quot;red&quot;)}</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;" /></p>
+<p>The null hypothesis is that there is no difference between average means of total medals received for big and small size countries. The alternate hypothesis is that there is a difference between average means of total medals received for big and small size countries.<br />
+After running the randomization test, we see a result of a two-tailed p-value of 0, which means that there are 0 mean differences that are more extreme than the actual mean difference of +/-26.150. This shows us that we can reject the null hypothesis, as we have a p-value less than 0.05, and if the null hypothesis were true, it would be very rare to get the mean difference that we saw.</p>
+<p>When graphing this null distribution and test statistic, we cannot even see the red line indicating the true mean difference of -26.150 as the graph’s x-axis stops at -10, which confirms the unlikelihood of actually observing this mean difference if the null hypothesis were true.</p>
+<ul>
+<li><strong>3.</strong></li>
+</ul>
+<pre class="r"><code>#LINEAR REGRESSION 
+
+#mean-centering numeric variables 
+proj2$popul_c &lt;- proj2$popul - mean(proj2$popul) 
+proj2$rank_c &lt;- proj2$ranking - mean(proj2$ranking)
+fit&lt;-lm(gold~popul_c*rank_c, data= proj2) 
+#interpret the coefficient estimates 
+summary(fit) #rank and interactions are significant </code></pre>
+<pre><code>##
+## Call:
+## lm(formula = gold ~ popul_c * rank_c, data = proj2)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -7.232 -2.167 -0.669 1.059 28.835
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 3.126e+00 5.166e-01 6.051 4.40e-08 ***
+## popul_c 5.608e-09 2.958e-09 1.896 0.0616 .
+## rank_c -1.746e-01 2.195e-02 -7.956 9.86e-12 ***
+## popul_c:rank_c -5.312e-10 9.633e-11 -5.514 4.17e-07 ***
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 4.67 on 80 degrees of freedom
+## Multiple R-squared: 0.6423, Adjusted R-squared: 0.6289
+## F-statistic: 47.89 on 3 and 80 DF, p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>###plot the regression 
+fit&lt;-lm(gold ~ popul_c * rank_c, data=proj2)
+new1&lt;-proj2
+new1$popul_c&lt;-mean(proj2$popul_c)
+new1$mean&lt;-predict(fit,new1)
+new1$popul_c&lt;-mean(proj2$popul_c)+sd(proj2$popul_c)
+new1$plus.sd&lt;-predict(fit,new1)
+new1$popul_c&lt;-mean(proj2$popul_c)-sd(proj2$popul_c)
+new1$minus.sd&lt;-predict(fit,new1)
+
+mycols&lt;-c(&quot;#619CFF&quot;,&quot;#F8766D&quot;,&quot;#00BA38&quot;)
+names(mycols)&lt;-c(&quot;-1 sd&quot;,&quot;mean&quot;,&quot;+1 sd&quot;)
+mycols=as.factor(mycols)
+
+ggplot(proj2,aes(rank_c,gold),group=mycols)+geom_point()+geom_line(data=new1,aes(y=mean,color=&quot;mean&quot;))+geom_line(data=new1,aes(y=plus.sd,color=&quot;+1 sd&quot;))+geom_line(data=new1,aes(y=minus.sd,color=&quot;-1 sd&quot;))+scale_color_manual(values=mycols)+labs(color=&quot;Population&quot;)+theme(legend.position=c(.9,.6))+ggtitle(&quot;Linear regression predicting gold medals from country population and ranking&quot;)+xlab(&quot;Ranking (mean-centered)&quot;)+ylab(&quot;Gold medals&quot;)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>###
+
+#check homoskedasticity, linearity, and normality 
+library(lmtest)
+library(sandwich)
+bptest(fit)</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit
+## BP = 9.8793, df = 3, p-value = 0.01962</code></pre>
+<pre class="r"><code>resids&lt;-fit$residuals
+fitvals&lt;-fit$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, col=&quot;red&quot;)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-4-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot()+geom_histogram(aes(resids),bins=20)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-4-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot()+geom_qq(aes(sample=resids))+geom_qq_line(aes(sample=resids),color=&quot;red&quot;)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-4-4.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#recompute with robust standard errors 
+coeftest(fit, vcov = vcovHC(fit)) #only rank is significant </code></pre>
+<pre><code>##
+## t test of coefficients:
+##
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 3.1259e+00 5.6965e-01 5.4874 4.654e-07 ***
+## popul_c 5.6080e-09 2.2535e-08 0.2489 0.8041
+## rank_c -1.7462e-01 4.0044e-02 -4.3608 3.825e-05 ***
+## popul_c:rank_c -5.3121e-10 1.6100e-09 -0.3299 0.7423
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#proportion of variation explained by model 
+summary(fit)$r.sq</code></pre>
+<pre><code>## [1] 0.6423433</code></pre>
+<p>The intercept coefficient shows us that with an avergage population and average rank,we expect an average country in this dataset to have 3.1259 medals; for every 1 person increase in population, we expect number of gold medals to increase by almost 0, 0.00000000561; for every 1 rank increase (which means the country was ranked poorer overall), we expect number of gold medals to decrease by 0.1746. The interaction of average population and average rank is not significant and has a coefficient estimate of essentially 0, so this interaction appears to have almost no effect on number of gold medals won. As the coefficient estimate is negative, it means that higher values for popul_c lead to a weaker/less steep slope for rank_c on the response. Furthermore, for every one unit increase in popul_c, the slope for rating gets 5.312E-10 smaller.</p>
+<p>We then ran a bptest() and as the p-value was 0.01962, we can reject the null hypothesis as it is smaller than the alpha value of 0.05 and conclude that this data does not show homoskedasticity. After graphing to check for linearity and normality assumptions, we can conclude that our data is overall fairly linear with some large outliers and we can conclude that our data does not show normality as we see large outliers.</p>
+<p>After recomputing regression results with robust standard errors we see that rank_centered is significant as it has a p-value less than the alpha value of 0.05, so we can reject the null hypothesis and conclude that rank does have a significant effect on number of gold medals won. In the robust standard errors, we see only rank as significant, while the original model (without robust standrad errors) indicated that both rank and the interaction of rank:population was significant. We see larger p-values overall for the robust standard errors.</p>
+<p>The proportion of variation in the outcome that this model explains is 0.6423. This tells us that 64.23% of the variation in number of gold medals can be explained by rank, population, and the interaction of rank and population.</p>
+<ul>
+<li><strong>4.</strong></li>
+</ul>
+<pre class="r"><code>#REGRESSION MODEL WITH BOOTSTRAPPED SE
+
+#residuals bootstrapped standard errors 
+set.seed(348)
+fit2&lt;-lm(gold~popul_c*rank_c, data= proj2) 
+resids&lt;-fit2$residuals
+fitted&lt;-fit2$fitted.values 
+
+resid_resamp&lt;-replicate(5000,{    
+  new_resids&lt;-sample(resids,replace=TRUE)
+  proj2$new_gold&lt;-fitted+new_resids
+  fit2&lt;-lm(new_gold~popul_c*rank_c,data=proj2) 
+  coef(fit2) 
+})
+
+resid_resamp%&gt;%t%&gt;%as.data.frame%&gt;%summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)      popul_c     rank_c popul_c:rank_c
+## 1   0.4988265 2.797846e-09 0.02157821   9.161788e-11</code></pre>
+<pre class="r"><code>#model with bootstrapped standard errors
+samp_distn&lt;-replicate(5000, {
+  boot_dat&lt;-sample_frac(proj2, replace=T) 
+  fit2&lt;-lm(gold~popul_c*rank_c,data=boot_dat)
+  coef(fit2)
+})
+
+samp_distn%&gt;%t%&gt;%as.data.frame%&gt;%summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)      popul_c     rank_c popul_c:rank_c
+## 1   0.8328127 1.844878e-08 0.04170385   8.706354e-10</code></pre>
+<p>The original SE we saw were 0.5167 for intercept, 2.96E-9 for population_c, 0.0219 for rank_c, and 9.633E-12 for popul_c:rank_c. The p-values for the original model were significant for rank_c and popul_c:rank_c and intercept: 4.399E-8 for intercept, 0.0219 for rank_c, and 4.166E-7 for popul_c:rank_c.</p>
+<p>With robust standard errors, we saw larger standard errors overall: 0.5697 for intercept, 2.253E-8 for population_c, 0.040 for rank_c, and 1.61E-9 for popul_c:rank_c. We see from the p-values that only the intercept and rank_c are significant (p-values less than 0.05): 4.65E-7 for intercept, 0.8041 for population_c, 0.0000383 for rank_c, and 0.7423 for popul_c:rank_c.</p>
+<p>The standard errors we saw for the residuals when doing bootstrapped standard errors were comparable to what we saw in the original data (not with robust standard errors):
+0.500 for intercept, 2.826E-9 for population_c, 0.0213 for rank_c, and 9.394E-11 for popul_c:rank_c.</p>
+<p>The standard errors we saw for the sample data we calculated when doing bootstrapped standard errors were overall higher than any of the other models, but comparable: 0.8337 for intercept, 1.838E-8 for population_c, 0.041 for rank_c, and 8.820E-10 for popul_c:rank_c. As these standard errors were comparable to those we saw earlier when using the robust standard errors, we can conlude that the same variables are likely significant with a p-value less than 0.05, so this would be the rank_c variable and popul_c:rank_c. </p>
+<ul>
+<li><strong>5.</strong></li>
+</ul>
+<pre class="r"><code>#LOGISTIC REGRESSION
+
+#linear regression on binary categorical variable 
+fit3&lt;-glm(top2~size+rank_c, family=&quot;binomial&quot;, data=proj2) 
+coeftest(fit3)</code></pre>
+<pre><code>## 
+## z test of coefficients:
+## 
+##               Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept)   168.6470 65237.5076  0.0026   0.9979
+## sizemedium     39.9063 53339.0701  0.0007   0.9994
+## sizesmall      39.6856 52573.5170  0.0008   0.9994
+## rank_c         -6.9081  2048.5303 -0.0034   0.9973</code></pre>
+<pre class="r"><code>#interpret coefficient estimates
+exp(coef(fit3))</code></pre>
+<pre><code>##  (Intercept)   sizemedium    sizesmall       rank_c 
+## 1.747730e+73 2.143278e+17 1.718848e+17 9.996662e-04</code></pre>
+<pre class="r"><code>#confusion matrix 
+prob&lt;-predict(fit3,type=&quot;response&quot;)
+table(predict=as.numeric(prob&gt;.5),truth=proj2$top2)%&gt;%addmargins</code></pre>
+<pre><code>##        truth
+## predict  0  1 Sum
+##     0   11  0  11
+##     1    0 73  73
+##     Sum 11 73  84</code></pre>
+<pre class="r"><code>(11+73)/84 #accuracy</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>73/73 #tpr/sensitivity</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>11/11 #true negative rate/specificity</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>73/73 #ppv (precision)</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>#plot density of log-odds 
+loggraph &lt;- proj2
+loggraph$logit&lt;-predict(fit3,type=&quot;link&quot;)
+
+loggraph%&gt;%ggplot()+geom_density(aes(logit,color=top2,fill=top2), alpha=.5)+
+  theme(legend.position=c(.85,.85))+geom_vline(xintercept=0)+xlab(&quot;logit (log-odds)&quot;)+
+  geom_rug(aes(logit,color=top2)) +ggtitle(&quot;Density of log-odds by Gold or Silver Winner&quot;)</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#generate ROC curve and calculate AUC
+library(plotROC)
+library(pROC)
+ROCplot&lt;-ggplot(proj2)+geom_roc(aes(d=y,m=prob), n.cuts=0)+ 
+  geom_segment(aes(x=0,xend=1,y=0,yend=1),lty=2)
+ROCplot</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-6-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group AUC
+## 1     1    -1   1</code></pre>
+<pre class="r"><code>#10-fold CV 
+set.seed(1234)
+k=10
+
+data&lt;-proj2[sample(nrow(proj2)),]
+folds&lt;-cut(seq(1:nrow(proj2)),breaks=k,labels=F)
+
+diags&lt;-NULL
+for(i in 1:k){
+  train&lt;-data[folds!=i,]
+  test&lt;-data[folds==i,]
+  truth&lt;-test$top2
+  
+  fit1e&lt;- glm(top2~size+rank_c,data=train, family=&quot;binomial&quot;)
+  probs&lt;-predict(fit1e,newdata = test,type=&quot;response&quot;)
+ 
+   diags&lt;-rbind(diags,class_diag(probs,truth))
+  
+}
+
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc   sens spec ppv auc
+## 1 0.9888889 0.9875    1   1   1</code></pre>
+<p>From the coefficients of the logistic regression, we see that controlling for size of the country, for every 1 position increase in rank (meaning the country is lower in total medals received), the odds of them receiving a silver or gold medal decreased by a factor of 0.001 (not-significant). We see that controlling for ranking, there is not a significant difference in receiving gold or silver medals between small, medium, and large countries. Controlling for ranking, odds of receiving a gold or silver medal for a small country is 1.719E19 times that of a large country, and odds of receiving a gold or silver medal for a medium country is 2.143E17 that of a large country. However for a large country, when rank is average, odds of receiving a gold or silver medal is 1.748E73.</p>
+<p>I created a confusion matrix and see that there was an accuracy of 1, sensitivity (or true positive rate) of 1, specificity (or true negative rate) of 1, and a ppv (precision) of 1. This shows that our model correctly identified all of the cases.</p>
+<p>After graphing the ggplot with the density of log-odds, we see when logit&gt;0, we predicted true that the country was in the top2, so all the blue to the right of the black line shows our true positive. When logit&lt;0, we predict it is false that the country was in the top2, so all the red to the right of the black line shows our true negative rate.</p>
+<p>After graphing the ROC plot, we see an AUC value of 1 – this shows us that our model is perfectly predicting the outcome and that none of the predictions would be off.</p>
+<p>After doing the 10-fold CV, we see out-of-sample Accuracy of 0.9875, Sensitivity of 0.9833, Recall of 1, and AUC of 1. We see that our 10-fold diagnositcs were slightly lower than those computed with all of our data because we are using random sampling of our data, and our AUC is still 1, which shows that our model is still predicting perfectly.</p>
+<ul>
+<li><strong>6.</strong></li>
+</ul>
+<pre class="r"><code>#LASSO REGRESSION
+
+#lasso regression
+lassodata&lt;-proj2%&gt;%dplyr::select(-country, -y)
+library(glmnet)
+y&lt;-as.matrix(lassodata$top2) 
+x&lt;-model.matrix(top2~.,data=lassodata) [,-1]
+x&lt;-scale(x)
+cv&lt;-cv.glmnet(x,y, family=&quot;binomial&quot;)
+lasso&lt;-glmnet(x,y,family=&quot;binomial&quot;,lambda=cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 12 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                         s0
+## (Intercept)      19.142052
+## popul             .       
+## ranking         -13.826943
+## gold              .       
+## silver            .       
+## bronze           -6.574575
+## totalmedal        .       
+## sizemedium        .       
+## sizesmall         .       
+## goldmedalwinner   .       
+## popul_c           .       
+## rank_c           -3.949379</code></pre>
+<pre class="r"><code>proj2$bronze_c &lt;- proj2$bronze - mean(proj2$bronze) 
+
+#10-fold cv with lasso selected variables 
+set.seed(1234)
+k=10
+data&lt;-proj2[sample(nrow(proj2)),]
+folds&lt;-cut(seq(1:nrow(proj2)),breaks=k,labels=F)
+
+diags&lt;-NULL
+for(i in 1:k){
+  train&lt;-data[folds!=i,] 
+  test&lt;-data[folds==i,]
+  truth&lt;-test$top2
+  
+  fit1e&lt;- glm(top2~rank_c+bronze_c,data=train, family=&quot;binomial&quot;)
+  probs&lt;-predict(fit1e,newdata = test,type=&quot;response&quot;)
+  
+  diags&lt;-rbind(diags,class_diag(probs,truth))
+}
+
+summarize_all(diags,mean)</code></pre>
+<pre><code>##      acc      sens spec ppv auc
+## 1 0.9875 0.9857143    1   1   1</code></pre>
+<p>The variables with non-zero values after the lasso regression was ranking and bronze.</p>
+<p>After performing the 10-fold CV using the variables identified by lasso (ranking and bronze, both were mean centered), we see that the lasso variables model’s out-of-sample accuracy was 0.9889, which is higher than the accuracy of the out-of-sample model we used for 10-fold CV, which was 0.9875. The sensitivity for this lasso-selected variable model was 0.9875, the ppv was 1, and the auc was 1, again showing that our model would perfectly predict the data.</p>
+<p>…</p>
+</div>
