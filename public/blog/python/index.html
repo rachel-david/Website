@@ -77,9 +77,13 @@ This blog is a brief review on using regular expression and the re.findall() fun
 <div id="re.findall-function" class="section level2">
 <h2>Re.findall() Function</h2>
 <p>The re.findall() function is an excellent tool in Python to look for and return all instances of a certain result in a string or list. There are special symbols and characters that can be used to return different results. Some examples of these symbols will be shown below.</p>
-<p>We first must call the reticulate package to allow us to use Python within R.</p>
+<p>We first must call the reticulate package to allow us to use Python within R. Another feature of the reticulate package is that we can share variables between R and Python. This will be shown in the example below:</p>
 <pre class="r"><code>library(reticulate)</code></pre>
 <pre><code>## Warning: package &#39;reticulate&#39; was built under R version 3.6.3</code></pre>
+<pre class="r"><code>test &lt;-&quot;Reticulate is&quot;</code></pre>
+<pre class="python"><code>case = &quot;really cool!&quot;
+print(r.test,case)</code></pre>
+<pre><code>## Reticulate is really cool!</code></pre>
 </div>
 <div id="the-.-symbol" class="section level2">
 <h2>The “.” symbol</h2>

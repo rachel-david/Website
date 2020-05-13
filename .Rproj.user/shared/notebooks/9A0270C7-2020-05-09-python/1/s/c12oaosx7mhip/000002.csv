@@ -1,2 +1,58 @@
-"0","library(reticulate)"
-"0","something<-""This is"""
+"0","test<-""Reticule is""
+"
+"1","Building sites â€¦ WARN 2020/05/13 00:43:57 Page.Hugo is deprecated and will be removed in a future release. Use the global hugo function.
+"
+"1","
+"
+"1","                   | EN  
+"
+"1","-------------------+-----
+"
+"1","  Pages            | 20  
+"
+"1","  Paginator pages  |  0  
+"
+"1","  Non-page files   |  4  
+"
+"1","  Static files     | 28  
+"
+"1","  Processed images |  0  
+"
+"1","  Aliases          |  0  
+"
+"1","  Sitemaps         |  1  
+"
+"1","  Cleaned          |  0  
+"
+"1","
+"
+"1","Total in 276 ms
+"
+"1","Building sites â€¦ WARN 2020/05/13 00:44:02 Page.Hugo is deprecated and will be removed in a future release. Use the global hugo function.
+"
+"1","
+"
+"1","                   | EN  
+"
+"1","-------------------+-----
+"
+"1","  Pages            | 20  
+"
+"1","  Paginator pages  |  0  
+"
+"1","  Non-page files   |  4  
+"
+"1","  Static files     | 28  
+"
+"1","  Processed images |  0  
+"
+"1","  Aliases          |  0  
+"
+"1","  Sitemaps         |  1  
+"
+"1","  Cleaned          |  0  
+"
+"1","
+"
+"1","Total in 231 ms
+"
