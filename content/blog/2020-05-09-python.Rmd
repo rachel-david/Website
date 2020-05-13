@@ -18,11 +18,11 @@ We first must call the reticulate package to allow us to use Python within R. An
 
 ```{r}
 library(reticulate)
-test <-"Reticulate is"
+test <-"Reticulate is" #This is a R code chunk
 ```
 
 ```{python}
-case = "really cool!"
+case = "really cool!" #This is a Python code chunk using the R variable
 print(r.test,case)
 ```
 
