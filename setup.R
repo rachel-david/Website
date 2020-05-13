@@ -5,3 +5,4 @@ blogdown::install_hugo()
 
 blogdown::new_site(theme="nurlansu/hugo-sustain")
 blogdown::build_site()
+  
