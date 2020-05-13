@@ -16,13 +16,15 @@ The re.findall() function is an excellent tool in Python to look for and return 
 
 We first must call the reticulate package to allow us to use Python within R. Another feature of the reticulate package is that we can share variables between R and Python. This will be shown in the example below:
 
+This is a R code chunk:
 ```{r}
 library(reticulate)
-test <-"Reticulate is" #This is a R code chunk
+test <-"Reticulate is" 
 ```
 
+This is a Python code chunk using the R variable:
 ```{python}
-case = "really cool!" #This is a Python code chunk using the R variable
+case = "really cool!" 
 print(r.test,case)
 ```
 
